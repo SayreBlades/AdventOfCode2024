@@ -54,13 +54,13 @@ pub fn is_safe_robust(nums_iter: *NumsIterator) bool {
 
 pub fn is_safe(nums_iter: *NumsIterator) bool {
     var prev_num = nums_iter.next().?;
-    var prev_diff: i32 = SENTINEL; // first time only
+    var prev_diff: ?i32 = null;
     while (nums_iter.next()) |num| {
         const inum: i32 = @intCast(num);
         const iprev: i32 = @intCast(prev_num);
         const diff = inum - iprev;
         const is_good_slope = good_slope(diff);
-        const is_same_sign = (same_sign(diff, prev_diff) or prev_diff == SENTINEL);
+        const is_same_sign = (prev_diff == null or same_sign(diff, prev_diff.?));
         if (!is_good_slope or !is_same_sign) {
             return false;
         }
