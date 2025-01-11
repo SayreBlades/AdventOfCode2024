@@ -7,28 +7,23 @@ const ArrayList = std.ArrayList;
 const max_size:u8 = 10;
 const pow = std.math.pow;
 
-fn get_operators(value:usize, ops:[]u8) void {
-    if(ops.len > max_size) unreachable;
-    var temp = value;
-    for(0..ops.len) |i| {
-        //0101
-        //0001
-        ops[i] = @intCast(temp & 1);
-        temp = (temp >> 1);
-    }
-}
-
-// fn get_operator_fn(op:u8): fn... {
-//     unreachable;
-// }
-
-fn apply_ops(nums:[]const u8, ops: []const u8) u32 {
+/// input: nums - list of numbers; operands
+/// input: ops - operators to apply to operands
+/// return: the sum of the operators applied to the operands
+///
+/// Ops is reverse bitwise encoded, such that the number 4:
+/// 4 == 0b100 is effectively reversed 001 and each bit
+/// represents encoded such that 0=='+' and 1=='*'
+fn apply_ops(nums:[]const u8, ops:u16) u32 {
     var total:u32 = nums[0];
-    for(ops, 1..) |operator, i| {
+    // print("total {}\n", .{total});
+    for(1..(nums.len)) |i| {
+        const slot:u4 = @intCast(i-1);
+        const operator:u1 = @intCast((ops >> slot) & 1);
+        // print("operator {}\n", .{operator});
         switch (operator) {
             0 => total += nums[i],
             1 => total *= nums[i],
-            else => unreachable
         }
         // print("total {}\n", .{total});
         if(i >= nums.len-1) break;
@@ -38,26 +33,43 @@ fn apply_ops(nums:[]const u8, ops: []const u8) u32 {
 
 test "apply_ops" {
     const nums = [_]u8{10, 19, 5};
-    var ops = [_]u8{0, 0};
-    var answer = apply_ops(&nums, &ops);
-    // print("answer {}\n", .{answer});
+    var ops:u16 = 0; // 0b00 == [0 0] == [+ +]
+    var answer = apply_ops(&nums, ops);
+    // print("answer {}\n\n", .{answer});
     try expect(answer == 34);
 
+    ops = 1; // 0b01 == [1 0] == [* +]
+    answer = apply_ops(&nums, ops);
+    // print("answer {}\n\n", .{answer});
+    try expect(answer == 195);
+
+    ops = 2; // 0b10 == [0 1] == [+ *]
+    answer = apply_ops(&nums, ops);
+    // print("answer {}\n\n", .{answer});
+    try expect(answer == 145);
+
+    ops = 3; // 0b11 == [1 1] == [* *]
+    answer = apply_ops(&nums, ops);
+    // print("answer {}\n\n", .{answer});
+    try expect(answer == 950);
+
     const nums2 = [_]u8{10, 19, 5, 10};
-    const ops2 = [_]u8{0, 0, 1};
-    answer = apply_ops(nums2[0..], ops2[0..]);
+    ops = 1; // 0b001 == [1 0 0] == [* + +]
+    answer = apply_ops(&nums2, ops);
     // print("answer {}\n", .{answer});
-    try expect(answer == 340);
+    try expect(answer == 205);
 }
 
 
+/// runs through all the permutations of operators
+/// to determine if they can be applied to the
+/// operands such that the expected 'answer' is valid
 fn is_valid(answer:u32, nums:[]const u8) bool {
     const slots:u8 = @intCast(nums.len-1);
-    var ops:[max_size]u8 = undefined;
-    for(0..pow(u8, 2, slots)) |i| {
-        get_operators(i, ops[0..slots]);
+    for(0..pow(u8, 2, slots), 0..) |_, ops| {
+        // get_operators(i, ops);
         // print("i: {}, ops: {any}\n", .{i, ops});
-        const value = apply_ops(nums, &ops);
+        const value = apply_ops(nums, @intCast(ops));
         if(value == answer) return true;
     }
     return false;
@@ -101,33 +113,3 @@ test "part1 - trivial" {
 // test "part2" {
 //     try expect(false);
 // }
-
-test "get_operators" {
-    var ops:[10]u8 = undefined;
-    get_operators(0, ops[0..1]); // == [0]
-    try expect(ops[0] == 0);
-
-    get_operators(1, ops[0..1]); // == [1]
-    try expect(ops[0] == 1);
-
-    get_operators(0, ops[0..2]); // == [0 0]
-    try expect(ops[0] == 0);
-    try expect(ops[1] == 0);
-
-    get_operators(1, ops[0..2]); // == [1 0]
-    try expect(ops[0] == 1);
-    try expect(ops[1] == 0);
-
-    get_operators(2, &ops); // == [0 1]
-    try expect(ops[0] == 0);
-    try expect(ops[1] == 1);
-
-    get_operators(3, &ops); // == [1 1]
-    try expect(ops[0] == 1);
-    try expect(ops[1] == 1);
-
-    get_operators(6, &ops); // == [0 1 1]
-    try expect(ops[0] == 0);
-    try expect(ops[1] == 1);
-    try expect(ops[2] == 1);
-}
